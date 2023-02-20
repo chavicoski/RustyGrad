@@ -1,9 +1,10 @@
 use core::fmt;
+use std::cell::RefCell;
 
 pub struct Value<'a> {
-    data: f32,
-    grad: f32,
-    prev: Option<Vec<&'a mut Value<'a>>>,
+    pub data: f32,
+    pub grad: f32,
+    prev: Option<Vec<&'a RefCell<Value<'a>>>>,
     op: Option<Op>,
 }
 
@@ -22,22 +23,6 @@ impl Value<'_> {
             op: None,
         }
     }
-
-    pub fn get_data(&self) -> f32 {
-        self.data
-    }
-
-    pub fn set_data(&mut self, data: f32) {
-        self.data = data;
-    }
-
-    pub fn get_grad(&self) -> f32 {
-        self.grad
-    }
-
-    pub fn set_grad(&mut self, grad: f32) {
-        self.grad = grad;
-    }
 }
 
 impl fmt::Display for Value<'_> {
@@ -46,41 +31,41 @@ impl fmt::Display for Value<'_> {
     }
 }
 
-pub fn add<'a>(v1: &'a mut Value<'a>, v2: &'a mut Value<'a>) -> Value<'a> {
-    Value {
-        data: v1.data + v2.data,
+pub fn add<'a>(v1: &'a RefCell<Value<'a>>, v2: &'a RefCell<Value<'a>>) -> RefCell<Value<'a>> {
+    RefCell::new(Value {
+        data: v1.borrow().data + v2.borrow().data,
         grad: 0.0,
         prev: Some(vec![v1, v2]),
         op: Some(Op::Add),
-    }
+    })
 }
 
-fn add_backward(value: &mut Value) {
-    match value.prev {
-        Some(ref mut children) => {
-            for child in children.iter_mut() {
-                child.set_grad(value.grad);
+fn add_backward(value: &RefCell<Value>) {
+    match &value.borrow_mut().prev {
+        Some(children) => {
+            for child in children.iter() {
+                child.borrow_mut().grad = value.borrow().grad;
             }
         }
         _ => println!("[Warning] Calling add_backward without children"),
     }
 }
 
-pub fn mul<'a>(v1: &'a mut Value<'a>, v2: &'a mut Value<'a>) -> Value<'a> {
-    Value {
-        data: v1.data * v2.data,
+pub fn mul<'a>(v1: &'a RefCell<Value<'a>>, v2: &'a RefCell<Value<'a>>) -> RefCell<Value<'a>> {
+    RefCell::new(Value {
+        data: v1.borrow().data * v2.borrow().data,
         grad: 0.0,
         prev: Some(vec![v1, v2]),
         op: Some(Op::Mul),
-    }
+    })
 }
 
-fn mul_backward(value: &mut Value) {
-    match value.prev {
-        Some(ref mut children) => match children[..] {
-            [ref mut v1, ref mut v2] => {
-                v1.set_grad(value.grad * v2.data);
-                v2.set_grad(value.grad * v1.data);
+fn mul_backward(value: &RefCell<Value>) {
+    match &value.borrow_mut().prev {
+        Some(children) => match &children[..] {
+            &[v1, v2] => {
+                v1.borrow_mut().grad = value.borrow().grad * v2.borrow().data;
+                v2.borrow_mut().grad = value.borrow().grad * v1.borrow().data;
             }
             _ => panic!("[Error] The number of children in Mul op is not 2!"),
         },
@@ -88,22 +73,24 @@ fn mul_backward(value: &mut Value) {
     }
 }
 
-pub fn tanh<'a>(value: &'a mut Value<'a>) -> Value<'a> {
-    let aux_exp = f32::exp(2.0 * value.data);
+pub fn tanh<'a>(value: &'a RefCell<Value<'a>>) -> RefCell<Value<'a>> {
+    let aux_exp = f32::exp(2.0 * value.borrow().data);
     let t = (aux_exp - 1.0) / (aux_exp + 1.0);
-    Value {
+    RefCell::new(Value {
         data: t,
         grad: 0.0,
         prev: Some(vec![value]),
         op: Some(Op::Tanh),
-    }
+    })
 }
 
-fn tanh_backward(value: &mut Value) {
-    match value.prev {
-        Some(ref mut children) => match children[..] {
-            [ref mut v] => {
-                v.set_grad(value.grad * (1.0 - f32::powi(v.data, 2)));
+fn tanh_backward(value: &RefCell<Value>) {
+    let value = value.borrow_mut();
+    match &value.prev {
+        Some(children) => match &children[..] {
+            &[v] => {
+                let mut v = v.borrow_mut();
+                v.grad = value.grad * (1.0 - f32::powi(value.data, 2));
             }
             _ => panic!("[Error] The number of children in Tanh op is not 1!"),
         },
@@ -117,39 +104,39 @@ mod tests {
 
     #[test]
     fn add_ok() {
-        let mut v1 = Value::new(27.0);
-        let mut v2 = Value::new(23.0);
-        let v3 = add(&mut v1, &mut v2);
-        assert_eq!(v3.data, 50.0);
+        let v1 = RefCell::new(Value::new(27.0));
+        let v2 = RefCell::new(Value::new(23.0));
+        let v3 = add(&v1, &v2);
+        assert_eq!(v3.borrow().data, 50.0);
     }
 
     #[test]
     fn mul_ok() {
-        let mut v1 = Value::new(2.0);
-        let mut v2 = Value::new(6.0);
-        let v3 = mul(&mut v1, &mut v2);
-        assert_eq!(v3.data, 12.0);
+        let v1 = RefCell::new(Value::new(2.0));
+        let v2 = RefCell::new(Value::new(6.0));
+        let v3 = mul(&v1, &v2);
+        assert_eq!(v3.borrow().data, 12.0);
     }
 
     #[test]
     fn tanh_ok() {
-        let mut v1 = Value::new(0.0);
-        let v2 = tanh(&mut v1);
-        assert_eq!(v2.data, 0.0);
+        let v1 = RefCell::new(Value::new(0.0));
+        let v2 = tanh(&v1);
+        assert_eq!(v2.borrow().data, 0.0);
 
-        let mut v1 = Value::new(0.7);
-        let v2 = tanh(&mut v1);
-        assert_eq!(v2.data, 0.6043678);
+        let v1 = RefCell::new(Value::new(0.7));
+        let v2 = tanh(&v1);
+        assert_eq!(v2.borrow().data, 0.6043678);
     }
 
     #[test]
     fn tanh_backward_ok() {
-        let mut input = Value::new(0.8814);
-        let mut out = tanh(&mut input);
-        assert_eq!(out.data, 0.70712);
+        let input = RefCell::new(Value::new(0.8814));
+        let out = tanh(&input);
+        assert_eq!(out.borrow().data, 0.70712);
 
-        out.set_grad(1.0);
-        tanh_backward(&mut out);
-        // TODO Fix this: assert_eq!(input.get_grad(), 0.5);
+        out.borrow_mut().grad = 1.0;
+        tanh_backward(&out);
+        assert_eq!(input.borrow().grad, 0.5);
     }
 }
