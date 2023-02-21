@@ -6,7 +6,7 @@ pub struct Value {
     pub data: f32,
     pub grad: f32,
     prev: Vec<Rc<RefCell<Value>>>,
-    backward_fn: Box<dyn Fn(&Value) -> ()>,
+    backward_fn: Box<dyn Fn(&Value)>,
 }
 
 impl Value {
@@ -66,7 +66,10 @@ fn mul_backward(value: &Value) {
             v1.grad += value.grad * v2.data;
             v2.grad += value.grad * v1.data;
         }
-        _ => panic!("[Error] The number of children in Mul op is not 2!"),
+        _ => panic!(
+            "[Error] The number of children in Mul op must be 2, but is {})!",
+            value.prev.len()
+        ),
     }
 }
 
@@ -87,7 +90,10 @@ fn tanh_backward(value: &Value) {
             let mut v = v.borrow_mut();
             v.grad += value.grad * (1.0 - f32::powi(value.data, 2));
         }
-        _ => panic!("[Error] The number of children in Tanh op is not 1!"),
+        _ => panic!(
+            "[Error] The number of children in Tanh op must be 1, but is {}!",
+            value.prev.len()
+        ),
     }
 }
 
