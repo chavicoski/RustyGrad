@@ -45,7 +45,7 @@ fn add_backward(value: &RefCell<Value>) {
     match &value.prev {
         Some(children) => {
             for child in children.iter() {
-                child.borrow_mut().grad = value.grad;
+                child.borrow_mut().grad += value.grad;
             }
         }
         _ => println!("[Warning] Calling add_backward without children"),
@@ -68,8 +68,8 @@ fn mul_backward(value: &RefCell<Value>) {
             &[v1, v2] => {
                 let mut v1 = v1.borrow_mut();
                 let mut v2 = v2.borrow_mut();
-                v1.grad = value.grad * v2.data;
-                v2.grad = value.grad * v1.data;
+                v1.grad += value.grad * v2.data;
+                v2.grad += value.grad * v1.data;
             }
             _ => panic!("[Error] The number of children in Mul op is not 2!"),
         },
@@ -94,7 +94,7 @@ fn tanh_backward(value: &RefCell<Value>) {
         Some(children) => match &children[..] {
             &[v] => {
                 let mut v = v.borrow_mut();
-                v.grad = value.grad * (1.0 - f32::powi(value.data, 2));
+                v.grad += value.grad * (1.0 - f32::powi(value.data, 2));
             }
             _ => panic!("[Error] The number of children in Tanh op is not 1!"),
         },
