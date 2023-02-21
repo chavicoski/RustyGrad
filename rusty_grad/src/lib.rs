@@ -5,7 +5,7 @@ use std::rc::Rc;
 pub struct Value {
     pub data: f32,
     pub grad: f32,
-    prev: Option<Vec<Rc<RefCell<Value>>>>,
+    prev: Vec<Rc<RefCell<Value>>>,
     backward_fn: Box<dyn Fn(&Value) -> ()>,
 }
 
@@ -14,7 +14,7 @@ impl Value {
         Value {
             data: value,
             grad: 0.0,
-            prev: None,
+            prev: vec![],
             backward_fn: Box::new(|_| ()),
         }
     }
@@ -38,19 +38,14 @@ pub fn add(v1: Rc<RefCell<Value>>, v2: Rc<RefCell<Value>>) -> Rc<RefCell<Value>>
     Rc::new(RefCell::new(Value {
         data: v1.borrow().data + v2.borrow().data,
         grad: 0.0,
-        prev: Some(vec![v1.clone(), v2.clone()]),
+        prev: vec![v1.clone(), v2.clone()],
         backward_fn: Box::new(add_backward),
     }))
 }
 
 fn add_backward(value: &Value) {
-    match &value.prev {
-        Some(children) => {
-            for child in children.iter() {
-                child.borrow_mut().grad += value.grad;
-            }
-        }
-        _ => println!("[Warning] Calling add_backward without children"),
+    for child in value.prev.iter() {
+        child.borrow_mut().grad += value.grad;
     }
 }
 
@@ -58,23 +53,20 @@ pub fn mul(v1: Rc<RefCell<Value>>, v2: Rc<RefCell<Value>>) -> Rc<RefCell<Value>>
     Rc::new(RefCell::new(Value {
         data: v1.borrow().data * v2.borrow().data,
         grad: 0.0,
-        prev: Some(vec![v1.clone(), v2.clone()]),
+        prev: vec![v1.clone(), v2.clone()],
         backward_fn: Box::new(mul_backward),
     }))
 }
 
 fn mul_backward(value: &Value) {
-    match &value.prev {
-        Some(children) => match &children[..] {
-            [v1, v2] => {
-                let mut v1 = v1.borrow_mut();
-                let mut v2 = v2.borrow_mut();
-                v1.grad += value.grad * v2.data;
-                v2.grad += value.grad * v1.data;
-            }
-            _ => panic!("[Error] The number of children in Mul op is not 2!"),
-        },
-        _ => println!("[Warning] Calling mul_backward without children"),
+    match &value.prev[..] {
+        [v1, v2] => {
+            let mut v1 = v1.borrow_mut();
+            let mut v2 = v2.borrow_mut();
+            v1.grad += value.grad * v2.data;
+            v2.grad += value.grad * v1.data;
+        }
+        _ => panic!("[Error] The number of children in Mul op is not 2!"),
     }
 }
 
@@ -84,21 +76,18 @@ pub fn tanh(value: Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     Rc::new(RefCell::new(Value {
         data: t,
         grad: 0.0,
-        prev: Some(vec![value]),
+        prev: vec![value],
         backward_fn: Box::new(tanh_backward),
     }))
 }
 
 fn tanh_backward(value: &Value) {
-    match &value.prev {
-        Some(children) => match &children[..] {
-            [v] => {
-                let mut v = v.borrow_mut();
-                v.grad += value.grad * (1.0 - f32::powi(value.data, 2));
-            }
-            _ => panic!("[Error] The number of children in Tanh op is not 1!"),
-        },
-        _ => println!("[Warning] Calling tanh_backward without children"),
+    match &value.prev[..] {
+        [v] => {
+            let mut v = v.borrow_mut();
+            v.grad += value.grad * (1.0 - f32::powi(value.data, 2));
+        }
+        _ => panic!("[Error] The number of children in Tanh op is not 1!"),
     }
 }
 
