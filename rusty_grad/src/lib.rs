@@ -7,6 +7,7 @@ pub struct Value {
     pub grad: f32,
     prev: Option<Vec<Rc<RefCell<Value>>>>,
     op: Option<Op>,
+    backward_fn: Box<dyn Fn(&Value) -> ()>,
 }
 
 enum Op {
@@ -22,11 +23,16 @@ impl Value {
             grad: 0.0,
             prev: None,
             op: None,
+            backward_fn: Box::new(|_| ()),
         }
     }
 
     pub fn new_rc(value: f32) -> Rc<RefCell<Value>> {
         Rc::new(RefCell::new(Self::new(value)))
+    }
+
+    pub fn backward(&self) {
+        (self.backward_fn)(self)
     }
 }
 
@@ -42,11 +48,11 @@ pub fn add(v1: Rc<RefCell<Value>>, v2: Rc<RefCell<Value>>) -> Rc<RefCell<Value>>
         grad: 0.0,
         prev: Some(vec![v1.clone(), v2.clone()]),
         op: Some(Op::Add),
+        backward_fn: Box::new(add_backward),
     }))
 }
 
-fn add_backward(value: Rc<RefCell<Value>>) {
-    let value = value.borrow();
+fn add_backward(value: &Value) {
     match &value.prev {
         Some(children) => {
             for child in children.iter() {
@@ -63,11 +69,11 @@ pub fn mul(v1: Rc<RefCell<Value>>, v2: Rc<RefCell<Value>>) -> Rc<RefCell<Value>>
         grad: 0.0,
         prev: Some(vec![v1.clone(), v2.clone()]),
         op: Some(Op::Mul),
+        backward_fn: Box::new(mul_backward),
     }))
 }
 
-fn mul_backward(value: Rc<RefCell<Value>>) {
-    let value = value.borrow();
+fn mul_backward(value: &Value) {
     match &value.prev {
         Some(children) => match &children[..] {
             [v1, v2] => {
@@ -90,11 +96,11 @@ pub fn tanh(value: Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
         grad: 0.0,
         prev: Some(vec![value]),
         op: Some(Op::Tanh),
+        backward_fn: Box::new(tanh_backward),
     }))
 }
 
-fn tanh_backward(value: Rc<RefCell<Value>>) {
-    let value = value.borrow();
+fn tanh_backward(value: &Value) {
     match &value.prev {
         Some(children) => match &children[..] {
             [v] => {
@@ -127,7 +133,7 @@ mod tests {
         assert_eq!(v3.borrow().data, 33.0);
 
         v3.borrow_mut().grad = 3.0;
-        add_backward(v3);
+        v3.borrow().backward();
         assert_eq!(v1.borrow().grad, 3.0);
         assert_eq!(v2.borrow().grad, 3.0);
     }
@@ -148,7 +154,7 @@ mod tests {
         assert_eq!(v3.borrow().data, 12.0);
 
         v3.borrow_mut().grad = 2.0;
-        mul_backward(v3);
+        v3.borrow().backward();
         assert_eq!(v1.borrow().grad, 12.0);
         assert_eq!(v2.borrow().grad, 4.0);
     }
@@ -171,7 +177,7 @@ mod tests {
         assert_eq!(out.borrow().data, 0.70712);
 
         out.borrow_mut().grad = 1.0;
-        tanh_backward(out);
+        out.borrow().backward();
         assert_eq!(input.borrow().grad, 0.49998128);
     }
 }
