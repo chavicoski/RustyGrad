@@ -24,6 +24,10 @@ impl Value {
             op: None,
         }
     }
+
+    pub fn new_rc(value: f32) -> Rc<RefCell<Value>> {
+        Rc::new(RefCell::new(Self::new(value)))
+    }
 }
 
 impl fmt::Display for Value {
@@ -109,16 +113,16 @@ mod tests {
 
     #[test]
     fn add_ok() {
-        let v1 = Rc::new(RefCell::new(Value::new(27.0)));
-        let v2 = Rc::new(RefCell::new(Value::new(23.0)));
+        let v1 = Value::new_rc(27.0);
+        let v2 = Value::new_rc(23.0);
         let v3 = add(v1, v2);
         assert_eq!(v3.borrow().data, 50.0);
     }
 
     #[test]
     fn add_backward_ok() {
-        let v1 = Rc::new(RefCell::new(Value::new(21.0)));
-        let v2 = Rc::new(RefCell::new(Value::new(12.0)));
+        let v1 = Value::new_rc(21.0);
+        let v2 = Value::new_rc(12.0);
         let v3 = add(v1.clone(), v2.clone());
         assert_eq!(v3.borrow().data, 33.0);
 
@@ -130,16 +134,16 @@ mod tests {
 
     #[test]
     fn mul_ok() {
-        let v1 = Rc::new(RefCell::new(Value::new(2.0)));
-        let v2 = Rc::new(RefCell::new(Value::new(6.0)));
+        let v1 = Value::new_rc(2.0);
+        let v2 = Value::new_rc(6.0);
         let v3 = mul(v1, v2);
         assert_eq!(v3.borrow().data, 12.0);
     }
 
     #[test]
     fn mul_backward_ok() {
-        let v1 = Rc::new(RefCell::new(Value::new(2.0)));
-        let v2 = Rc::new(RefCell::new(Value::new(6.0)));
+        let v1 = Value::new_rc(2.0);
+        let v2 = Value::new_rc(6.0);
         let v3 = mul(v1.clone(), v2.clone());
         assert_eq!(v3.borrow().data, 12.0);
 
@@ -151,18 +155,18 @@ mod tests {
 
     #[test]
     fn tanh_ok() {
-        let v1 = Rc::new(RefCell::new(Value::new(0.0)));
+        let v1 = Value::new_rc(0.0);
         let v2 = tanh(v1);
         assert_eq!(v2.borrow().data, 0.0);
 
-        let v1 = Rc::new(RefCell::new(Value::new(0.7)));
+        let v1 = Value::new_rc(0.7);
         let v2 = tanh(v1);
         assert_eq!(v2.borrow().data, 0.6043678);
     }
 
     #[test]
     fn tanh_backward_ok() {
-        let input = Rc::new(RefCell::new(Value::new(0.8814)));
+        let input = Value::new_rc(0.8814);
         let out = tanh(input.clone());
         assert_eq!(out.borrow().data, 0.70712);
 

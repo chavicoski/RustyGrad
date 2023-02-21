@@ -1,18 +1,15 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use rusty_grad::{add, mul, tanh, Value};
 
 fn main() {
     // Inputs
-    let x1 = Rc::new(RefCell::new(Value::new(2.0)));
-    let x2 = Rc::new(RefCell::new(Value::new(0.0)));
+    let x1 = Value::new_rc(2.0);
+    let x2 = Value::new_rc(0.0);
 
     // Weights
-    let w1 = Rc::new(RefCell::new(Value::new(-3.0)));
-    let w2 = Rc::new(RefCell::new(Value::new(1.0)));
+    let w1 = Value::new_rc(-3.0);
+    let w2 = Value::new_rc(1.0);
     // Bias
-    let b = Rc::new(RefCell::new(Value::new(6.8813735870195432)));
+    let b = Value::new_rc(6.8813735870195432);
 
     // Compute: x1*w1 + x2*w2 + b
     let x1w1 = mul(x1, w1);
