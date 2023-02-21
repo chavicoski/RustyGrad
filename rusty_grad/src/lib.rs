@@ -6,14 +6,7 @@ pub struct Value {
     pub data: f32,
     pub grad: f32,
     prev: Option<Vec<Rc<RefCell<Value>>>>,
-    op: Option<Op>,
     backward_fn: Box<dyn Fn(&Value) -> ()>,
-}
-
-enum Op {
-    Add,
-    Mul,
-    Tanh,
 }
 
 impl Value {
@@ -22,7 +15,6 @@ impl Value {
             data: value,
             grad: 0.0,
             prev: None,
-            op: None,
             backward_fn: Box::new(|_| ()),
         }
     }
@@ -47,7 +39,6 @@ pub fn add(v1: Rc<RefCell<Value>>, v2: Rc<RefCell<Value>>) -> Rc<RefCell<Value>>
         data: v1.borrow().data + v2.borrow().data,
         grad: 0.0,
         prev: Some(vec![v1.clone(), v2.clone()]),
-        op: Some(Op::Add),
         backward_fn: Box::new(add_backward),
     }))
 }
@@ -68,7 +59,6 @@ pub fn mul(v1: Rc<RefCell<Value>>, v2: Rc<RefCell<Value>>) -> Rc<RefCell<Value>>
         data: v1.borrow().data * v2.borrow().data,
         grad: 0.0,
         prev: Some(vec![v1.clone(), v2.clone()]),
-        op: Some(Op::Mul),
         backward_fn: Box::new(mul_backward),
     }))
 }
@@ -95,7 +85,6 @@ pub fn tanh(value: Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
         data: t,
         grad: 0.0,
         prev: Some(vec![value]),
-        op: Some(Op::Tanh),
         backward_fn: Box::new(tanh_backward),
     }))
 }
