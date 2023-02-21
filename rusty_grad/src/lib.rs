@@ -41,10 +41,11 @@ pub fn add<'a>(v1: &'a RefCell<Value<'a>>, v2: &'a RefCell<Value<'a>>) -> RefCel
 }
 
 fn add_backward(value: &RefCell<Value>) {
-    match &value.borrow_mut().prev {
+    let value = value.borrow();
+    match &value.prev {
         Some(children) => {
             for child in children.iter() {
-                child.borrow_mut().grad = value.borrow().grad;
+                child.borrow_mut().grad = value.grad;
             }
         }
         _ => println!("[Warning] Calling add_backward without children"),
@@ -61,11 +62,14 @@ pub fn mul<'a>(v1: &'a RefCell<Value<'a>>, v2: &'a RefCell<Value<'a>>) -> RefCel
 }
 
 fn mul_backward(value: &RefCell<Value>) {
-    match &value.borrow_mut().prev {
+    let value = value.borrow();
+    match &value.prev {
         Some(children) => match &children[..] {
             &[v1, v2] => {
-                v1.borrow_mut().grad = value.borrow().grad * v2.borrow().data;
-                v2.borrow_mut().grad = value.borrow().grad * v1.borrow().data;
+                let mut v1 = v1.borrow_mut();
+                let mut v2 = v2.borrow_mut();
+                v1.grad = value.grad * v2.data;
+                v2.grad = value.grad * v1.data;
             }
             _ => panic!("[Error] The number of children in Mul op is not 2!"),
         },
@@ -85,7 +89,7 @@ pub fn tanh<'a>(value: &'a RefCell<Value<'a>>) -> RefCell<Value<'a>> {
 }
 
 fn tanh_backward(value: &RefCell<Value>) {
-    let value = value.borrow_mut();
+    let value = value.borrow();
     match &value.prev {
         Some(children) => match &children[..] {
             &[v] => {
@@ -111,11 +115,37 @@ mod tests {
     }
 
     #[test]
+    fn add_backward_ok() {
+        let v1 = RefCell::new(Value::new(21.0));
+        let v2 = RefCell::new(Value::new(12.0));
+        let v3 = add(&v1, &v2);
+        assert_eq!(v3.borrow().data, 33.0);
+
+        v3.borrow_mut().grad = 3.0;
+        add_backward(&v3);
+        assert_eq!(v1.borrow().grad, 3.0);
+        assert_eq!(v2.borrow().grad, 3.0);
+    }
+
+    #[test]
     fn mul_ok() {
         let v1 = RefCell::new(Value::new(2.0));
         let v2 = RefCell::new(Value::new(6.0));
         let v3 = mul(&v1, &v2);
         assert_eq!(v3.borrow().data, 12.0);
+    }
+
+    #[test]
+    fn mul_backward_ok() {
+        let v1 = RefCell::new(Value::new(2.0));
+        let v2 = RefCell::new(Value::new(6.0));
+        let v3 = mul(&v1, &v2);
+        assert_eq!(v3.borrow().data, 12.0);
+
+        v3.borrow_mut().grad = 2.0;
+        mul_backward(&v3);
+        assert_eq!(v1.borrow().grad, 12.0);
+        assert_eq!(v2.borrow().grad, 4.0);
     }
 
     #[test]
@@ -137,6 +167,6 @@ mod tests {
 
         out.borrow_mut().grad = 1.0;
         tanh_backward(&out);
-        assert_eq!(input.borrow().grad, 0.5);
+        assert_eq!(input.borrow().grad, 0.49998128);
     }
 }
