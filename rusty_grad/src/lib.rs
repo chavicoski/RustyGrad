@@ -1,5 +1,7 @@
+use by_address::ByAddress;
 use core::fmt;
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 pub struct Value {
@@ -24,7 +26,25 @@ impl Value {
     }
 
     pub fn backward(&self) {
-        (self.backward_fn)(self)
+        let mut topo: Vec<Rc<RefCell<Value>>> = vec![];
+        let mut visited: HashSet<ByAddress<Rc<RefCell<Value>>>> = HashSet::new();
+        let mut stack: Vec<Rc<RefCell<Value>>> =
+            Vec::from_iter(self.prev.iter().map(|v| v.clone()));
+        while !stack.is_empty() {
+            let v = stack.pop().unwrap();
+            if !visited.contains(&ByAddress(v.clone())) {
+                visited.insert(ByAddress(v.clone()));
+                for child in &v.borrow().prev {
+                    stack.push(child.clone());
+                }
+                topo.push(v);
+            }
+        }
+        (self.backward_fn)(self);
+        for v in topo {
+            let v = v.borrow();
+            (v.backward_fn)(&v);
+        }
     }
 }
 
