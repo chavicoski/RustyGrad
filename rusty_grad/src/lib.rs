@@ -26,9 +26,11 @@ impl Value {
     }
 
     pub fn backward(&self) {
-        // Auxiliar stack for traversing the graph
+        // Auxiliar stack for traversing the graph in depth.
+        // Start adding the first childs as we already know that `self` will
+        // be the fist value to backpropagate the gradient
         let mut stack = Vec::from_iter(self.prev.iter().map(|v| v.clone()));
-        // Stores the already visited values
+        // Tracks the already visited values
         let mut visited: HashSet<ByAddress<Rc<RefCell<Value>>>> = HashSet::new();
         // Stores the values in topological order
         let mut topo: Vec<Rc<RefCell<Value>>> = vec![];
