@@ -26,10 +26,14 @@ impl Value {
     }
 
     pub fn backward(&self) {
-        let mut topo: Vec<Rc<RefCell<Value>>> = vec![];
+        // Auxiliar stack for traversing the graph
+        let mut stack = Vec::from_iter(self.prev.iter().map(|v| v.clone()));
+        // Stores the already visited values
         let mut visited: HashSet<ByAddress<Rc<RefCell<Value>>>> = HashSet::new();
-        let mut stack: Vec<Rc<RefCell<Value>>> =
-            Vec::from_iter(self.prev.iter().map(|v| v.clone()));
+        // Stores the values in topological order
+        let mut topo: Vec<Rc<RefCell<Value>>> = vec![];
+
+        // Compute the topological order
         while !stack.is_empty() {
             let v = stack.pop().unwrap();
             if !visited.contains(&ByAddress(v.clone())) {
@@ -40,6 +44,8 @@ impl Value {
                 topo.push(v);
             }
         }
+
+        // Apply the backpropagation in topological order
         (self.backward_fn)(self);
         for v in topo {
             let v = v.borrow();
