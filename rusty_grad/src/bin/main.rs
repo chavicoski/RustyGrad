@@ -18,7 +18,6 @@ fn main() {
     let n = add(x1w1_x2w2, b);
     let out = tanh(n);
     let mut out = out.borrow_mut();
-    out.grad = 1.0; // Set an initial gradient to backpropagate
     out.backward();
     println!("x1 = {}", x1.borrow());
     println!("w1 = {}", w1.borrow());

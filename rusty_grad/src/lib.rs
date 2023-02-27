@@ -25,7 +25,7 @@ impl Value {
         Rc::new(RefCell::new(Self::new(value)))
     }
 
-    pub fn backward(&self) {
+    pub fn backward(&mut self) {
         // Auxiliar stack for traversing the graph in depth.
         // Start adding the first childs as we already know that `self` will
         // be the fist value to backpropagate the gradient
@@ -48,6 +48,7 @@ impl Value {
         }
 
         // Apply the backpropagation in topological order
+        self.grad = 1.0;
         (self.backward_fn)(self);
         for v in topo {
             let v = v.borrow();
@@ -144,10 +145,9 @@ mod tests {
         let v3 = add(v1.clone(), v2.clone());
         assert_eq!(v3.borrow().data, 33.0);
 
-        v3.borrow_mut().grad = 3.0;
-        v3.borrow().backward();
-        assert_eq!(v1.borrow().grad, 3.0);
-        assert_eq!(v2.borrow().grad, 3.0);
+        v3.borrow_mut().backward();
+        assert_eq!(v1.borrow().grad, 1.0);
+        assert_eq!(v2.borrow().grad, 1.0);
     }
 
     #[test]
@@ -165,10 +165,9 @@ mod tests {
         let v3 = mul(v1.clone(), v2.clone());
         assert_eq!(v3.borrow().data, 12.0);
 
-        v3.borrow_mut().grad = 2.0;
-        v3.borrow().backward();
-        assert_eq!(v1.borrow().grad, 12.0);
-        assert_eq!(v2.borrow().grad, 4.0);
+        v3.borrow_mut().backward();
+        assert_eq!(v1.borrow().grad, 6.0);
+        assert_eq!(v2.borrow().grad, 2.0);
     }
 
     #[test]
@@ -188,8 +187,7 @@ mod tests {
         let out = tanh(input.clone());
         assert_eq!(out.borrow().data, 0.70712);
 
-        out.borrow_mut().grad = 1.0;
-        out.borrow().backward();
+        out.borrow_mut().backward();
         assert_eq!(input.borrow().grad, 0.49998128);
     }
 }
