@@ -25,32 +25,36 @@ impl Value {
         Rc::new(RefCell::new(Self::new(value)))
     }
 
+    fn topological_sort(
+        value: Rc<RefCell<Value>>,
+        topo: &mut Vec<Rc<RefCell<Value>>>,
+        visited: &mut HashSet<ByAddress<Rc<RefCell<Value>>>>,
+    ) {
+        if !visited.contains(&ByAddress(value.clone())) {
+            visited.insert(ByAddress(value.clone()));
+            for child in &value.borrow().prev {
+                Self::topological_sort(child.clone(), topo, visited);
+            }
+            topo.push(value);
+        }
+    }
+
     pub fn backward(&mut self) {
-        // Auxiliar stack for traversing the graph in depth.
-        // Start adding the first childs as we already know that `self` will
-        // be the fist value to backpropagate the gradient
-        let mut stack = Vec::from_iter(self.prev.iter().map(|v| v.clone()));
         // Tracks the already visited values
         let mut visited: HashSet<ByAddress<Rc<RefCell<Value>>>> = HashSet::new();
         // Stores the values in topological order
         let mut topo: Vec<Rc<RefCell<Value>>> = vec![];
 
-        // Compute the topological order
-        while !stack.is_empty() {
-            let v = stack.pop().unwrap();
-            if !visited.contains(&ByAddress(v.clone())) {
-                visited.insert(ByAddress(v.clone()));
-                for child in &v.borrow().prev {
-                    stack.push(child.clone());
-                }
-                topo.push(v);
-            }
+        // Compute the topological order from the childs of `self`. We already know
+        // that `self` must be the fist value in topological order
+        for child in &self.prev {
+            Self::topological_sort(child.clone(), &mut topo, &mut visited);
         }
 
-        // Apply the backpropagation in topological order
+        // Apply the backpropagation in topological order (from parents to childs)
         self.grad = 1.0;
         (self.backward_fn)(self);
-        for v in topo {
+        for v in topo.iter().rev() {
             let v = v.borrow();
             (v.backward_fn)(&v);
         }
