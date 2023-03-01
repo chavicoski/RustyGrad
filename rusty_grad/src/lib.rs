@@ -112,7 +112,7 @@ pub fn tanh(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     Rc::new(RefCell::new(Value {
         data: t,
         grad: 0.0,
-        prev: vec![value],
+        prev: vec![value.clone()],
         backward_fn: Box::new(tanh_backward),
     }))
 }
