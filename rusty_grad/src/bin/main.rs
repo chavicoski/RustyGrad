@@ -1,4 +1,4 @@
-use rusty_grad::{add, mul, tanh, Value};
+use rusty_grad::{add, mul, tanh, Module, Value, MLP};
 
 fn main() {
     // Inputs
@@ -24,4 +24,13 @@ fn main() {
     println!("x2 = {}", x2.borrow());
     println!("w2 = {}", w2.borrow());
     println!("output = {out}");
+
+    let model = MLP::new(3, vec![4, 4, 1]);
+    let x = vec![Value::new_rc(2.0), Value::new_rc(3.0), Value::new_rc(-1.0)];
+    let out = model.forward(&x);
+    print!("MLP output: [");
+    for v in out {
+        print!("{},", v.borrow());
+    }
+    println!("]");
 }
