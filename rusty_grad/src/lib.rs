@@ -243,6 +243,29 @@ fn pow_backward(value: &Value) {
     }
 }
 
+pub fn relu(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
+    let v_data = value.borrow().data;
+    Rc::new(RefCell::new(Value {
+        data: if v_data > 0.0 { v_data } else { 0.0 },
+        grad: 0.0,
+        prev: vec![value.clone()],
+        backward_fn: Box::new(relu_backward),
+    }))
+}
+
+fn relu_backward(value: &Value) {
+    match &value.prev[..] {
+        [v] => {
+            let mut v = v.borrow_mut();
+            v.grad += value.grad * (v.data > 0.0) as u8 as f32;
+        }
+        _ => panic!(
+            "[Error] The number of children in ReLU op must be 1, but is {}!",
+            value.prev.len()
+        ),
+    }
+}
+
 pub fn tanh(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     let aux_exp = f32::exp(2.0 * value.borrow().data);
     let t = (aux_exp - 1.0) / (aux_exp + 1.0);
@@ -326,6 +349,38 @@ mod tests {
 
         res.borrow_mut().backward();
         assert_eq!(v.borrow().grad, 6.0);
+    }
+
+    #[test]
+    fn relu_ok() {
+        // Test negative input
+        let v1 = Value::new_rc(-2.0);
+        let v2 = relu(&v1);
+        assert_eq!(v2.borrow().data, 0.0);
+
+        // Test positive input
+        let v1 = Value::new_rc(0.7);
+        let v2 = relu(&v1);
+        assert_eq!(v2.borrow().data, 0.7);
+    }
+
+    #[test]
+    fn relu_backward_ok() {
+        // Test negative input
+        let input = Value::new_rc(-1.0);
+        let out = relu(&input);
+        assert_eq!(out.borrow().data, 0.0);
+
+        out.borrow_mut().backward();
+        assert_eq!(input.borrow().grad, 0.0);
+
+        // Test positive input
+        let input = Value::new_rc(0.8814);
+        let out = relu(&input);
+        assert_eq!(out.borrow().data, 0.8814);
+
+        out.borrow_mut().backward();
+        assert_eq!(input.borrow().grad, 1.0);
     }
 
     #[test]
