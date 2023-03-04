@@ -26,10 +26,11 @@ pub trait Module {
 pub struct Neuron {
     weight: Vec<Rc<RefCell<Value>>>,
     bias: Rc<RefCell<Value>>,
+    non_lin: bool,
 }
 
 impl Neuron {
-    pub fn new(n_in: usize) -> Self {
+    pub fn new(n_in: usize, non_lin: bool) -> Self {
         let uniform = Uniform::new_inclusive(-1.0, 1.0);
         let mut rng = rand::thread_rng();
         Neuron {
@@ -37,6 +38,7 @@ impl Neuron {
                 .map(|_| Value::new_rc(uniform.sample(&mut rng)))
                 .collect(),
             bias: Value::new_rc(uniform.sample(&mut rng)),
+            non_lin,
         }
     }
 }
@@ -51,15 +53,20 @@ impl Module for Neuron {
     }
     fn forward(&self, x: &Vec<Rc<RefCell<Value>>>) -> Vec<Rc<RefCell<Value>>> {
         // Compute the product between X and W
-        let aux = self
+        let mut aux = self
             .weight
             .iter()
             .zip(x)
             .map(|(ref w, ref x)| mul(w, x))
             .reduce(|ref v1, ref v2| add(v1, v2))
             .unwrap();
-        // Add the Bias and apply the non-linear function
-        vec![tanh(&add(&aux, &self.bias))]
+        // Add the Bias
+        aux = add(&aux, &self.bias);
+        // Apply the non linear function
+        if self.non_lin {
+            aux = relu(&aux);
+        }
+        vec![aux]
     }
 }
 
@@ -68,9 +75,9 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub fn new(n_in: usize, n_out: usize) -> Self {
+    pub fn new(n_in: usize, n_out: usize, non_lin: bool) -> Self {
         Layer {
-            neurons: (0..n_out).map(|_| Neuron::new(n_in)).collect(),
+            neurons: (0..n_out).map(|_| Neuron::new(n_in, non_lin)).collect(),
         }
     }
 }
@@ -100,9 +107,9 @@ impl MLP {
     pub fn new(n_in: usize, n_units: Vec<usize>) -> Self {
         let mut layers: Vec<Layer> = vec![];
         let mut aux_in = n_in;
-        for aux_out in n_units {
-            layers.push(Layer::new(aux_in, aux_out));
-            aux_in = aux_out;
+        for (i, aux_out) in n_units.iter().enumerate() {
+            layers.push(Layer::new(aux_in, *aux_out, i < n_units.len() - 1));
+            aux_in = *aux_out;
         }
         MLP { layers }
     }
