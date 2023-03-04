@@ -1,36 +1,56 @@
-use rusty_grad::{add, mul, tanh, Module, Value, MLP};
+use rusty_grad::{add, squared_error, Module, Value, MLP};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 fn main() {
-    // Inputs
-    let x1 = Value::new_rc(2.0);
-    let x2 = Value::new_rc(0.0);
+    // Prepare the dataset
+    let dataset_x = vec![
+        vec![Value::new_rc(2.0), Value::new_rc(3.0), Value::new_rc(-1.0)],
+        vec![Value::new_rc(3.0), Value::new_rc(-1.0), Value::new_rc(0.5)],
+        vec![Value::new_rc(0.5), Value::new_rc(1.0), Value::new_rc(1.0)],
+        vec![Value::new_rc(1.0), Value::new_rc(1.0), Value::new_rc(-1.0)],
+    ];
+    let dataset_y = vec![
+        Value::new_rc(1.0),
+        Value::new_rc(-1.0),
+        Value::new_rc(-1.0),
+        Value::new_rc(-1.0),
+    ];
 
-    // Weights
-    let w1 = Value::new_rc(-3.0);
-    let w2 = Value::new_rc(1.0);
-    // Bias
-    let b = Value::new_rc(6.8813735870195432);
-
-    // Compute: x1*w1 + x2*w2 + b
-    let x1w1 = mul(&x1, &w1);
-    let x2w2 = mul(&x2, &w2);
-    let x1w1_x2w2 = add(&x1w1, &x2w2);
-    let n = add(&x1w1_x2w2, &b);
-    let out = tanh(&n);
-    let mut out = out.borrow_mut();
-    out.backward();
-    println!("x1 = {}", x1.borrow());
-    println!("w1 = {}", w1.borrow());
-    println!("x2 = {}", x2.borrow());
-    println!("w2 = {}", w2.borrow());
-    println!("output = {out}");
-
+    // Create the model
     let model = MLP::new(3, vec![4, 4, 1]);
-    let x = vec![Value::new_rc(2.0), Value::new_rc(3.0), Value::new_rc(-1.0)];
-    let out = model.forward(&x);
-    print!("MLP output: [");
-    for v in out {
-        print!("{},", v.borrow());
+
+    // Make predictions (forward pass)
+    let pred = dataset_x
+        .iter()
+        .map(|x| model.forward(&x))
+        .collect::<Vec<Vec<Rc<RefCell<Value>>>>>();
+
+    // Sum up the loss for each prediction to compute the total loss
+    let loss = dataset_y
+        .iter()
+        .zip(&pred)
+        .map(|(y_true, y_pred)| squared_error(&y_true, &y_pred[0]))
+        .reduce(|ref v1, ref v2| add(v1, v2))
+        .unwrap();
+
+    println!("MLP predictions: [");
+    for p in pred {
+        print!("\t");
+        for v in p {
+            print!("{},", v.borrow());
+        }
+        print!("\n");
+    }
+    println!("]");
+
+    // Backpropagate the loss
+    loss.borrow_mut().backward();
+
+    // Show the parameters to see the computed gradients
+    println!("MLP parameters: [");
+    for param in model.parameters() {
+        println!("\t{},", param.borrow());
     }
     println!("]");
 }

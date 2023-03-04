@@ -301,6 +301,13 @@ fn tanh_backward(value: &Value) {
     }
 }
 
+pub fn squared_error(
+    y_true: &Rc<RefCell<Value>>,
+    y_pred: &Rc<RefCell<Value>>,
+) -> Rc<RefCell<Value>> {
+    pow(&diff(y_true, y_pred), 2.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
