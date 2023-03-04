@@ -220,6 +220,29 @@ fn mul_backward(value: &Value) {
     }
 }
 
+pub fn pow(v1: &Rc<RefCell<Value>>, power: f32) -> Rc<RefCell<Value>> {
+    Rc::new(RefCell::new(Value {
+        data: v1.borrow().data.powf(power),
+        grad: 0.0,
+        prev: vec![v1.clone(), Rc::new(RefCell::new(Value::new(power)))],
+        backward_fn: Box::new(pow_backward),
+    }))
+}
+
+fn pow_backward(value: &Value) {
+    match &value.prev[..] {
+        [v, power] => {
+            let mut v = v.borrow_mut();
+            let power = power.borrow();
+            v.grad += value.grad * (power.data * v.data.powf(power.data - 1.0));
+        }
+        _ => panic!(
+            "[Error] The number of children in Pow op must be 2, but is {})!",
+            value.prev.len()
+        ),
+    }
+}
+
 pub fn tanh(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     let aux_exp = f32::exp(2.0 * value.borrow().data);
     let t = (aux_exp - 1.0) / (aux_exp + 1.0);
@@ -286,6 +309,23 @@ mod tests {
         v3.borrow_mut().backward();
         assert_eq!(v1.borrow().grad, 6.0);
         assert_eq!(v2.borrow().grad, 2.0);
+    }
+
+    #[test]
+    fn pow_ok() {
+        let v = Value::new_rc(3.0);
+        let res = pow(&v, 2.0);
+        assert_eq!(res.borrow().data, 9.0);
+    }
+
+    #[test]
+    fn pow_backward_ok() {
+        let v = Value::new_rc(3.0);
+        let res = pow(&v, 2.0);
+        assert_eq!(res.borrow().data, 9.0);
+
+        res.borrow_mut().backward();
+        assert_eq!(v.borrow().grad, 6.0);
     }
 
     #[test]
