@@ -203,6 +203,10 @@ fn add_backward(value: &Value) {
     }
 }
 
+pub fn diff(v1: &Rc<RefCell<Value>>, v2: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
+    add(v1, &mul(v2, &Value::new_rc(-1.0)))
+}
+
 pub fn mul(v1: &Rc<RefCell<Value>>, v2: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     Rc::new(RefCell::new(Value {
         data: v1.borrow().data * v2.borrow().data,
@@ -319,6 +323,26 @@ mod tests {
         v3.borrow_mut().backward();
         assert_eq!(v1.borrow().grad, 1.0);
         assert_eq!(v2.borrow().grad, 1.0);
+    }
+
+    #[test]
+    fn diff_ok() {
+        let v1 = Value::new_rc(27.0);
+        let v2 = Value::new_rc(23.0);
+        let v3 = diff(&v1, &v2);
+        assert_eq!(v3.borrow().data, 4.0);
+    }
+
+    #[test]
+    fn diff_backward_ok() {
+        let v1 = Value::new_rc(21.0);
+        let v2 = Value::new_rc(12.0);
+        let v3 = diff(&v1, &v2);
+        assert_eq!(v3.borrow().data, 9.0);
+
+        v3.borrow_mut().backward();
+        assert_eq!(v1.borrow().grad, 1.0);
+        assert_eq!(v2.borrow().grad, -1.0);
     }
 
     #[test]
