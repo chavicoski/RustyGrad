@@ -17,9 +17,12 @@ jobs:
                     - stable
                     - beta
                     - nightly
+        defaults:
+            run:
+                - working-directory: ./rusty_grad
+
         steps:
             - uses: actions/checkout@v3
-            - working-directory: ./rusty_grad
             - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
             - run: cargo build --verbose
             - run: cargo test --verbose
