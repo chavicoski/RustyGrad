@@ -1,5 +1,5 @@
 use rusty_grad::backend::{ops::add, value::Value};
-use rusty_grad::nn::{components::Module, losses::mse, models::MLP};
+use rusty_grad::nn::{components::Module, losses::squared_error, models::MLP};
 use std::{cell::RefCell, rc::Rc};
 
 const LEARNING_RATE: f32 = 0.005;
@@ -34,7 +34,7 @@ fn main() {
         let loss = dataset_y
             .iter()
             .zip(&pred)
-            .map(|(y_true, y_pred)| mse(&y_true, &y_pred[0]))
+            .map(|(y_true, y_pred)| squared_error(&y_true, &y_pred[0]))
             .reduce(|ref v1, ref v2| add(v1, v2))
             .unwrap();
 
