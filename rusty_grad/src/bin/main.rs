@@ -1,6 +1,7 @@
 use rusty_grad::backend::ops::{add, squared_error};
 use rusty_grad::backend::value::Value;
-use rusty_grad::nn::{Module, MLP};
+use rusty_grad::nn::components::Module;
+use rusty_grad::nn::models::MLP;
 use std::cell::RefCell;
 use std::rc::Rc;
 
