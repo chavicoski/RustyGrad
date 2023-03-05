@@ -1,6 +1,5 @@
 use crate::backend::value::Value;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub fn add(v1: &Rc<RefCell<Value>>, v2: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     Rc::new(RefCell::new(Value {
@@ -66,13 +65,6 @@ fn pow_backward(value: &Value) {
             value.prev.len()
         ),
     }
-}
-
-pub fn squared_error(
-    y_true: &Rc<RefCell<Value>>,
-    y_pred: &Rc<RefCell<Value>>,
-) -> Rc<RefCell<Value>> {
-    pow(&diff(y_true, y_pred), 2.0)
 }
 
 #[cfg(test)]

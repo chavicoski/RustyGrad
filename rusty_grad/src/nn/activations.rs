@@ -1,6 +1,5 @@
 use crate::backend::value::Value;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub fn relu(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
     let v_data = value.borrow().data;

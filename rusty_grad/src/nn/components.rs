@@ -1,10 +1,10 @@
-use crate::backend::ops::{add, mul};
-use crate::backend::value::Value;
+use crate::backend::{
+    ops::{add, mul},
+    value::Value,
+};
 use crate::nn::activations::relu;
-use rand::distributions::Uniform;
-use rand::prelude::Distribution;
-use std::cell::RefCell;
-use std::rc::Rc;
+use rand::{distributions::Uniform, prelude::Distribution};
+use std::{cell::RefCell, rc::Rc};
 
 pub trait Module {
     fn zero_grad(&self) {

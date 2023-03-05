@@ -1,8 +1,7 @@
 use by_address::ByAddress;
 use core::fmt;
-use std::cell::RefCell;
 use std::collections::HashSet;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub struct Value {
     pub data: f32,

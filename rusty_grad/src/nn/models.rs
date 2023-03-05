@@ -1,8 +1,6 @@
 use crate::backend::value::Value;
-use crate::nn::components::Module;
-use crate::nn::layers::Dense;
-use std::cell::RefCell;
-use std::rc::Rc;
+use crate::nn::{components::Module, layers::Dense};
+use std::{cell::RefCell, rc::Rc};
 
 pub struct MLP {
     layers: Vec<Dense>,

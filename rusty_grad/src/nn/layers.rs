@@ -1,7 +1,6 @@
 use crate::backend::value::Value;
 use crate::nn::components::{Module, Neuron};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub struct Dense {
     neurons: Vec<Neuron>,
