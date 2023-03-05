@@ -3,19 +3,19 @@ use crate::nn::components::{Module, Neuron};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct Layer {
+pub struct Dense {
     neurons: Vec<Neuron>,
 }
 
-impl Layer {
+impl Dense {
     pub fn new(n_in: usize, n_out: usize, non_lin: bool) -> Self {
-        Layer {
+        Dense {
             neurons: (0..n_out).map(|_| Neuron::new(n_in, non_lin)).collect(),
         }
     }
 }
 
-impl Module for Layer {
+impl Module for Dense {
     fn parameters(&self) -> Vec<Rc<RefCell<Value>>> {
         self.neurons
             .iter()

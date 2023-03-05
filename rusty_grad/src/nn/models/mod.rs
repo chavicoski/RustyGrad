@@ -1,19 +1,19 @@
 use crate::backend::value::Value;
 use crate::nn::components::Module;
-use crate::nn::layers::Layer;
+use crate::nn::layers::Dense;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct MLP {
-    layers: Vec<Layer>,
+    layers: Vec<Dense>,
 }
 
 impl MLP {
     pub fn new(n_in: usize, n_units: Vec<usize>) -> Self {
-        let mut layers: Vec<Layer> = vec![];
+        let mut layers: Vec<Dense> = vec![];
         let mut aux_in = n_in;
         for (i, aux_out) in n_units.iter().enumerate() {
-            layers.push(Layer::new(aux_in, *aux_out, i < n_units.len() - 1));
+            layers.push(Dense::new(aux_in, *aux_out, i < n_units.len() - 1));
             aux_in = *aux_out;
         }
         MLP { layers }
