@@ -44,6 +44,10 @@ fn mul_backward(value: &Value) {
     }
 }
 
+pub fn div(v1: &Rc<RefCell<Value>>, v2: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
+    mul(v1, &pow(v2, -1.0))
+}
+
 pub fn pow(v1: &Rc<RefCell<Value>>, power: f32) -> Rc<RefCell<Value>> {
     Rc::new(RefCell::new(Value {
         data: v1.borrow().data.powf(power),
@@ -129,6 +133,26 @@ mod tests {
         v3.borrow_mut().backward();
         assert_eq!(v1.borrow().grad, 6.0);
         assert_eq!(v2.borrow().grad, 2.0);
+    }
+
+    #[test]
+    fn div_ok() {
+        let v1 = Value::new_rc(3.0);
+        let v2 = Value::new_rc(2.0);
+        let v3 = div(&v1, &v2);
+        assert_eq!(v3.borrow().data, 1.5);
+    }
+
+    #[test]
+    fn div_backward_ok() {
+        let v1 = Value::new_rc(4.0);
+        let v2 = Value::new_rc(2.0);
+        let v3 = div(&v1, &v2);
+        assert_eq!(v3.borrow().data, 2.0);
+
+        v3.borrow_mut().backward();
+        assert_eq!(v1.borrow().grad, 0.5);
+        assert_eq!(v2.borrow().grad, -1.0);
     }
 
     #[test]
