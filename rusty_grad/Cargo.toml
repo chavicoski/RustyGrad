@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 by_address = "1.1.0"
 rand = "0.8.5"
+ndarray = "0.15.6"
+num-traits = "0.2.15"

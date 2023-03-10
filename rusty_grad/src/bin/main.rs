@@ -1,4 +1,6 @@
-use rusty_grad::backend::{ops::add, value::Value};
+use ndarray::{array, ArrayD, IxDyn};
+use rusty_grad::backend::ops::add;
+use rusty_grad::backend::tensor::Tensor;
 use rusty_grad::nn::{components::Module, losses::squared_error, models::MLP};
 use std::{cell::RefCell, rc::Rc};
 
@@ -8,16 +10,24 @@ const EPOCHS: usize = 1000;
 fn main() {
     // Prepare the dataset
     let dataset_x = vec![
-        vec![Value::new_rc(2.0), Value::new_rc(3.0), Value::new_rc(-1.0)],
-        vec![Value::new_rc(3.0), Value::new_rc(-1.0), Value::new_rc(0.5)],
-        vec![Value::new_rc(0.5), Value::new_rc(1.0), Value::new_rc(1.0)],
-        vec![Value::new_rc(1.0), Value::new_rc(1.0), Value::new_rc(-1.0)],
+        vec![Tensor::new_rc(
+            &ArrayD::from_shape_vec(IxDyn(&[3]), vec![2., 3., -1.]).unwrap(),
+        )],
+        vec![Tensor::new_rc(
+            &ArrayD::from_shape_vec(IxDyn(&[3]), vec![3., -1., 0.5]).unwrap(),
+        )],
+        vec![Tensor::new_rc(
+            &ArrayD::from_shape_vec(IxDyn(&[3]), vec![0.5, 1., 1.]).unwrap(),
+        )],
+        vec![Tensor::new_rc(
+            &ArrayD::from_shape_vec(IxDyn(&[3]), vec![1., 1., -1.]).unwrap(),
+        )],
     ];
     let dataset_y = vec![
-        Value::new_rc(1.0),
-        Value::new_rc(-1.0),
-        Value::new_rc(-1.0),
-        Value::new_rc(-1.0),
+        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1]), vec![1.]).unwrap()),
+        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1]), vec![-1.]).unwrap()),
+        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1]), vec![-1.]).unwrap()),
+        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1]), vec![-1.]).unwrap()),
     ];
 
     // Create the model
@@ -28,14 +38,14 @@ fn main() {
         let pred = dataset_x
             .iter()
             .map(|x| model.forward(&x))
-            .collect::<Vec<Vec<Rc<RefCell<Value>>>>>();
+            .collect::<Vec<Vec<Rc<RefCell<Tensor>>>>>();
 
         // Compute loss
         let loss = dataset_y
             .iter()
             .zip(&pred)
-            .map(|(y_true, y_pred)| squared_error(&y_true, &y_pred[0]))
-            .reduce(|ref v1, ref v2| add(v1, v2))
+            .map(|(y_true, y_pred)| squared_error(y_true.clone(), y_pred[0].clone()))
+            .reduce(|v1, v2| add(v1, v2))
             .unwrap();
 
         // Reset the gradients to zero
@@ -46,7 +56,7 @@ fn main() {
         // Update parameters
         for param in model.parameters() {
             let mut param = param.borrow_mut();
-            param.data -= param.grad * LEARNING_RATE;
+            param.data -= &(&param.grad * LEARNING_RATE);
         }
 
         // Show current loss

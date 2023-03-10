@@ -1,2 +1,2 @@
 pub mod ops;
-pub mod value;
+pub mod tensor;

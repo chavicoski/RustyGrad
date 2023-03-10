@@ -1,49 +1,50 @@
-use crate::backend::value::Value;
+use crate::backend::tensor::Tensor;
+use ndarray::Array;
 use std::{cell::RefCell, rc::Rc};
 
-pub fn relu(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
-    let v_data = value.borrow().data;
-    Rc::new(RefCell::new(Value {
-        data: if v_data > 0.0 { v_data } else { 0.0 },
-        grad: 0.0,
-        prev: vec![value.clone()],
+pub fn relu(t: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+    let t_data = t.borrow().data;
+    Rc::new(RefCell::new(Tensor {
+        data: t_data.mapv(|x| if x > 0. { x } else { 0. }),
+        grad: Array::zeros(t_data.raw_dim()),
+        prev: vec![t.clone()],
         backward_fn: Box::new(relu_backward),
     }))
 }
 
-fn relu_backward(value: &Value) {
-    match &value.prev[..] {
-        [v] => {
-            let mut v = v.borrow_mut();
-            v.grad += value.grad * (v.data > 0.0) as u8 as f32;
+fn relu_backward(t: &Tensor) {
+    match &t.prev[..] {
+        [t_prev] => {
+            let mut t_prev = t_prev.borrow_mut();
+            t_prev.grad += &(&t.grad * &t.data.mapv(|x| (x > 0.) as u8 as f32));
         }
         _ => panic!(
             "[Error] The number of children in ReLU op must be 1, but is {}!",
-            value.prev.len()
+            t.prev.len()
         ),
     }
 }
 
-pub fn tanh(value: &Rc<RefCell<Value>>) -> Rc<RefCell<Value>> {
-    let aux_exp = f32::exp(2.0 * value.borrow().data);
-    let t = (aux_exp - 1.0) / (aux_exp + 1.0);
-    Rc::new(RefCell::new(Value {
-        data: t,
-        grad: 0.0,
-        prev: vec![value.clone()],
+pub fn tanh(t: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+    let aux_exp = t.borrow().data.mapv(|x| f32::exp(2.0 * x));
+    let res = (aux_exp - 1.) / (aux_exp + 1.);
+    Rc::new(RefCell::new(Tensor {
+        data: res,
+        grad: Array::zeros(t.borrow().data.raw_dim()),
+        prev: vec![t.clone()],
         backward_fn: Box::new(tanh_backward),
     }))
 }
 
-fn tanh_backward(value: &Value) {
-    match &value.prev[..] {
-        [v] => {
-            let mut v = v.borrow_mut();
-            v.grad += value.grad * (1.0 - f32::powi(value.data, 2));
+fn tanh_backward(t: &Tensor) {
+    match &t.prev[..] {
+        [t_prev] => {
+            let mut t_prev = t_prev.borrow_mut();
+            t_prev.grad += &(&t.grad * &t.data.mapv(|x| 1. - f32::powi(x, 2)));
         }
         _ => panic!(
             "[Error] The number of children in Tanh op must be 1, but is {}!",
-            value.prev.len()
+            t.prev.len()
         ),
     }
 }

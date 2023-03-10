@@ -1,6 +1,7 @@
-use crate::backend::value::Value;
+use crate::backend::tensor::Tensor;
 use crate::nn::{components::Module, layers::Dense};
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct MLP {
     layers: Vec<Dense>,
@@ -19,15 +20,15 @@ impl MLP {
 }
 
 impl Module for MLP {
-    fn parameters(&self) -> Vec<Rc<RefCell<Value>>> {
+    fn parameters(&self) -> Vec<Rc<RefCell<Tensor>>> {
         self.layers
             .iter()
             .map(|l| l.parameters())
-            .collect::<Vec<Vec<Rc<RefCell<Value>>>>>() // Vector of parameters' vectors
+            .collect::<Vec<Vec<Rc<RefCell<Tensor>>>>>() // Vector of parameters' vectors
             .concat()
     }
 
-    fn forward(&self, x: &Vec<Rc<RefCell<Value>>>) -> Vec<Rc<RefCell<Value>>> {
+    fn forward(&self, x: &Vec<Rc<RefCell<Tensor>>>) -> Vec<Rc<RefCell<Tensor>>> {
         self.layers
             .iter()
             .fold(x.clone(), |input, l| l.forward(&input))
