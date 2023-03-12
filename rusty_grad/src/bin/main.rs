@@ -44,8 +44,8 @@ fn main() {
         let loss = dataset_y
             .iter()
             .zip(&pred)
-            .map(|(y_true, y_pred)| squared_error(y_true.clone(), y_pred[0].clone()))
-            .reduce(|v1, v2| add(v1, v2))
+            .map(|(y_true, y_pred)| squared_error(&y_true, &y_pred[0]))
+            .reduce(|v1, v2| add(&v1, &v2))
             .unwrap();
 
         // Reset the gradients to zero

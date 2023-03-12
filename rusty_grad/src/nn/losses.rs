@@ -6,8 +6,8 @@ use crate::backend::{
 };
 
 pub fn squared_error(
-    y_true: Rc<RefCell<Tensor>>,
-    y_pred: Rc<RefCell<Tensor>>,
+    y_true: &Rc<RefCell<Tensor>>,
+    y_pred: &Rc<RefCell<Tensor>>,
 ) -> Rc<RefCell<Tensor>> {
-    pow(diff(y_true, y_pred), 2.0)
+    pow(&diff(y_true, y_pred), 2.0)
 }

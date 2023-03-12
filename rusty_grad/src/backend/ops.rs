@@ -2,7 +2,7 @@ use crate::backend::tensor::Tensor;
 use ndarray::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
-pub fn add(t1: Rc<RefCell<Tensor>>, t2: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+pub fn add(t1: &Rc<RefCell<Tensor>>, t2: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
     Rc::new(RefCell::new(Tensor {
         data: &t1.borrow().data + &t2.borrow().data,
         grad: Array::zeros(t1.borrow().grad.raw_dim()),
@@ -17,17 +17,17 @@ fn add_backward(t: &Tensor) {
     }
 }
 
-pub fn diff(t1: Rc<RefCell<Tensor>>, t2: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+pub fn diff(t1: &Rc<RefCell<Tensor>>, t2: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
     add(
-        t1.clone(),
-        mul(
+        t1,
+        &mul(
             t2,
-            Tensor::new_rc(&Array::from_elem(t1.borrow().grad.raw_dim(), -1.0)),
+            &Tensor::new_rc(&Array::from_elem(t1.borrow().grad.raw_dim(), -1.0)),
         ),
     )
 }
 
-pub fn mul(t1: Rc<RefCell<Tensor>>, t2: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+pub fn mul(t1: &Rc<RefCell<Tensor>>, t2: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
     Rc::new(RefCell::new(Tensor {
         data: &t1.borrow().data * &t2.borrow().data,
         grad: Array::zeros(t1.borrow().grad.raw_dim()),
@@ -51,11 +51,11 @@ fn mul_backward(t: &Tensor) {
     }
 }
 
-pub fn div(t1: Rc<RefCell<Tensor>>, t2: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
-    mul(t1, pow(t2, -1.0))
+pub fn div(t1: &Rc<RefCell<Tensor>>, t2: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+    mul(t1, &pow(t2, -1.0))
 }
 
-pub fn pow(t1: Rc<RefCell<Tensor>>, power: f32) -> Rc<RefCell<Tensor>> {
+pub fn pow(t1: &Rc<RefCell<Tensor>>, power: f32) -> Rc<RefCell<Tensor>> {
     Rc::new(RefCell::new(Tensor {
         data: t1.borrow().data.mapv(|x| x.powf(power)),
         grad: Array::zeros(t1.borrow().grad.raw_dim()),
@@ -87,7 +87,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 5., 4., 3., 2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = add(t1, t2);
+        let t3 = add(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![7., 7., 7., 7., 7., 7.]).unwrap()
@@ -100,7 +100,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 5., 4., 3., -2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = add(t1.clone(), t2.clone());
+        let t3 = add(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-5., 7., 1., 7., 3., 7.]).unwrap()
@@ -118,7 +118,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 5., 4., 3., 2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = diff(t1, t2);
+        let t3 = diff(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-5., -3., -1., 1., 3., 5.]).unwrap()
@@ -131,7 +131,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 5., 4., 3., -2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = diff(t1.clone(), t2.clone());
+        let t3 = diff(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![7., -3., -7., 1., 7., 5.]).unwrap()
@@ -149,7 +149,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 5., 4., 3., 2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = mul(t1, t2);
+        let t3 = mul(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 10., 12., 12., 10., 6.]).unwrap()
@@ -162,7 +162,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 5., 4., 3., -2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = mul(t1.clone(), t2.clone());
+        let t3 = mul(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 10., -12., 12., -10., 6.]).unwrap()
@@ -179,7 +179,7 @@ mod tests {
         let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![2., 2., 3., 5., 4., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = div(t1, t2);
+        let t3 = div(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.5, 1., 3., 2., 0.25, 6.]).unwrap()
@@ -194,7 +194,7 @@ mod tests {
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.9, 0.2, -0.4, -0.3, -0.2, 2.2]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = div(t1.clone(), t2.clone());
+        let t3 = div(&t1, &t2);
         assert_eq!(
             t3.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.33333337, -3., -3., 2., 2., 1.]).unwrap()
@@ -230,7 +230,7 @@ mod tests {
     fn pow_ok() {
         let arr = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 4., 3., 5., 6.]).unwrap();
         let t = Tensor::new_rc(&arr);
-        let res = pow(t, 2.0);
+        let res = pow(&t, 2.0);
         assert_eq!(
             res.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 4., 16., 9., 25., 36.]).unwrap()
@@ -241,7 +241,7 @@ mod tests {
     fn pow_backward_ok() {
         let arr = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 4., 3., 5., 6.]).unwrap();
         let t = Tensor::new_rc(&arr);
-        let res = pow(t.clone(), 2.0);
+        let res = pow(&t, 2.0);
         assert_eq!(
             res.borrow().data,
             ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 4., 16., 9., 25., 36.]).unwrap()
