@@ -18,7 +18,9 @@ impl Dense {
             w: Tensor::new_rc(
                 &ArrayD::from_shape_vec(
                     IxDyn(&[n_in, n_out]),
-                    (0..n_in).map(|_| uniform.sample(&mut rng).into()).collect(),
+                    (0..n_in * n_out)
+                        .map(|_| uniform.sample(&mut rng).into())
+                        .collect(),
                 )
                 .unwrap(),
             ),

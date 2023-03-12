@@ -1,4 +1,4 @@
-use ndarray::{array, ArrayD, IxDyn};
+use ndarray::{ArrayD, IxDyn};
 use rusty_grad::backend::ops::add;
 use rusty_grad::backend::tensor::Tensor;
 use rusty_grad::nn::{components::Module, losses::squared_error, models::MLP};
@@ -55,8 +55,7 @@ fn main() {
 
         // Update parameters
         for param in model.parameters() {
-            let mut param = param.borrow_mut();
-            param.data -= &(&param.grad * LEARNING_RATE);
+            param.borrow_mut().data -= &(&param.borrow().grad * LEARNING_RATE);
         }
 
         // Show current loss

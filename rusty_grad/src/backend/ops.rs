@@ -67,9 +67,8 @@ pub fn pow(t1: Rc<RefCell<Tensor>>, power: f32) -> Rc<RefCell<Tensor>> {
 fn pow_backward(t: &Tensor, power: f32) {
     match &t.prev[..] {
         [prev] => {
-            let mut mut_prev = prev.borrow_mut();
-            mut_prev.grad +=
-                &(&t.grad * (prev.borrow().data.mapv(|x| x.powf(power - 1.0))) * power);
+            let dprev = prev.borrow().data.mapv(|x| x.powf(power - 1.0)) * power;
+            prev.borrow_mut().grad += &(&t.grad * &dprev);
         }
         _ => panic!(
             "[Error] The number of children in Pow op must be 1, but is {})!",
@@ -81,7 +80,6 @@ fn pow_backward(t: &Tensor, power: f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ndarray::prelude::*;
 
     #[test]
     fn add_ok() {
@@ -98,94 +96,161 @@ mod tests {
 
     #[test]
     fn add_backward_ok() {
-        let t1 = Tensor::new_rc(&array![[1., 2., -3.], [4., 5., 6.]]);
-        let t2 = Tensor::new_rc(&array![[-6., 5., 4.], [3., -2., 1.]]);
-        let t3 = add(t1, t2);
-        assert_eq!(t3.data, array![[-5., 7., 1.], [7., 3., 7.]]);
+        let arr1 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., -3., 4., 5., 6.]).unwrap();
+        let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 5., 4., 3., -2., 1.]).unwrap();
+        let t1 = Tensor::new_rc(&arr1);
+        let t2 = Tensor::new_rc(&arr2);
+        let t3 = add(t1.clone(), t2.clone());
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-5., 7., 1., 7., 3., 7.]).unwrap()
+        );
 
-        t3.backward();
-        let target_grad = Array::<f32, _>::ones(t1.grad.raw_dim());
-        assert_eq!(t1.grad, target_grad);
-        assert_eq!(t2.grad, target_grad);
+        t3.borrow_mut().backward();
+        let target_grad = Array::<f32, _>::ones(t1.borrow().grad.raw_dim());
+        assert_eq!(t1.borrow().grad, target_grad);
+        assert_eq!(t2.borrow().grad, target_grad);
     }
 
     #[test]
     fn diff_ok() {
-        let t1 = Tensor::new_rc(&array![[1., 2., 3.], [4., 5., 6.]]);
-        let t2 = Tensor::new_rc(&array![[6., 5., 4.], [3., 2., 1.]]);
+        let arr1 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 3., 4., 5., 6.]).unwrap();
+        let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 5., 4., 3., 2., 1.]).unwrap();
+        let t1 = Tensor::new_rc(&arr1);
+        let t2 = Tensor::new_rc(&arr2);
         let t3 = diff(t1, t2);
-        assert_eq!(t3.data, array![[-5., -3., -1.], [1., 3., 5.]]);
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-5., -3., -1., 1., 3., 5.]).unwrap()
+        );
     }
 
     #[test]
     fn diff_backward_ok() {
-        let t1 = Tensor::new_rc(&array![[1., 2., -3.], [4., 5., 6.]]);
-        let t2 = Tensor::new_rc(&array![[-6., 5., 4.], [3., -2., 1.]]);
-        let t3 = diff(t1, t2);
-        assert_eq!(t3.data, array![[7., -3., -7.], [1., 7., 5.]]);
+        let arr1 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., -3., 4., 5., 6.]).unwrap();
+        let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 5., 4., 3., -2., 1.]).unwrap();
+        let t1 = Tensor::new_rc(&arr1);
+        let t2 = Tensor::new_rc(&arr2);
+        let t3 = diff(t1.clone(), t2.clone());
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![7., -3., -7., 1., 7., 5.]).unwrap()
+        );
 
-        t3.backward();
-        let target_grad = Array::<f32, _>::ones(t1.grad.raw_dim());
-        assert_eq!(t1.grad, target_grad);
-        assert_eq!(t2.grad, -target_grad);
+        t3.borrow_mut().backward();
+        let target_grad = Array::<f32, _>::ones(t1.borrow().grad.raw_dim());
+        assert_eq!(t1.borrow().grad, target_grad);
+        assert_eq!(t2.borrow().grad, -target_grad);
     }
 
     #[test]
     fn mul_ok() {
-        let t1 = Tensor::new_rc(&array![[1., 2., 3.], [4., 5., 6.]]);
-        let t2 = Tensor::new_rc(&array![[6., 5., 4.], [3., 2., 1.]]);
+        let arr1 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 3., 4., 5., 6.]).unwrap();
+        let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 5., 4., 3., 2., 1.]).unwrap();
+        let t1 = Tensor::new_rc(&arr1);
+        let t2 = Tensor::new_rc(&arr2);
         let t3 = mul(t1, t2);
-        assert_eq!(t3.data, array![[6., 10., 12.], [12., 10., 6.]]);
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![6., 10., 12., 12., 10., 6.]).unwrap()
+        );
     }
 
     #[test]
     fn mul_backward_ok() {
-        let arr1 = array![[1., 2., -3.], [4., 5., 6.]];
-        let arr2 = array![[-6., 5., 4.], [3., -2., 1.]];
+        let arr1 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., -3., 4., 5., 6.]).unwrap();
+        let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 5., 4., 3., -2., 1.]).unwrap();
         let t1 = Tensor::new_rc(&arr1);
         let t2 = Tensor::new_rc(&arr2);
-        let t3 = mul(t1, t2);
-        assert_eq!(t3.data, array![[-6., 10., -12.], [12., -10., 6.]]);
+        let t3 = mul(t1.clone(), t2.clone());
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![-6., 10., -12., 12., -10., 6.]).unwrap()
+        );
 
-        t3.backward();
-        assert_eq!(t1.grad, arr2);
-        assert_eq!(t2.grad, arr1);
+        t3.borrow_mut().backward();
+        assert_eq!(t1.borrow().grad, arr2);
+        assert_eq!(t2.borrow().grad, arr1);
     }
 
     #[test]
     fn div_ok() {
-        let t1 = Tensor::new_rc(&array![[1., 2., 9.], [10., 1., 6.]]);
-        let t2 = Tensor::new_rc(&array![[2., 2., 3.], [5., 4., 1.]]);
+        let arr1 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 9., 10., 1., 6.]).unwrap();
+        let arr2 = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![2., 2., 3., 5., 4., 1.]).unwrap();
+        let t1 = Tensor::new_rc(&arr1);
+        let t2 = Tensor::new_rc(&arr2);
         let t3 = div(t1, t2);
-        assert_eq!(t3.data, array![[0.5, 1., 3.], [2., 0.25, 6.]]);
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.5, 1., 3., 2., 0.25, 6.]).unwrap()
+        );
     }
 
     #[test]
     fn div_backward_ok() {
-        let t1 = Tensor::new_rc(&array![[1., 2., 9.], [10., 1., 6.]]);
-        let t2 = Tensor::new_rc(&array![[2., 2., 3.], [5., 4., 1.]]);
-        let t3 = div(t1, t2);
-        assert_eq!(t3.data, array![[0.5, 1., 3.], [2., 0.25, 6.]]);
+        let arr1 =
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.3, -0.6, 1.2, -0.6, -0.4, 2.2]).unwrap();
+        let arr2 =
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.9, 0.2, -0.4, -0.3, -0.2, 2.2]).unwrap();
+        let t1 = Tensor::new_rc(&arr1);
+        let t2 = Tensor::new_rc(&arr2);
+        let t3 = div(t1.clone(), t2.clone());
+        assert_eq!(
+            t3.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0.33333337, -3., -3., 2., 2., 1.]).unwrap()
+        );
 
-        t3.backward();
-        assert_eq!(t1.grad, array![[1., 1., 1.], [1., 1., 1.]]);
-        assert_eq!(t2.grad, array![[1., 1., 1.], [1., 1., 1.]]);
+        t3.borrow_mut().backward();
+        assert_eq!(
+            t1.borrow().grad,
+            ArrayD::from_shape_vec(
+                IxDyn(&[2, 3]),
+                vec![1.1111112, 5., -2.5, -3.3333333, -5., 0.45454544]
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            t2.borrow().grad,
+            ArrayD::from_shape_vec(
+                IxDyn(&[2, 3]),
+                vec![
+                    -0.37037042,
+                    15.000001,
+                    -7.5000005,
+                    6.6666665,
+                    10.,
+                    -0.45454544
+                ]
+            )
+            .unwrap()
+        );
     }
 
     #[test]
     fn pow_ok() {
-        let t = Tensor::new_rc(&array![[1., 2., 4.], [3., 5., 6.]]);
+        let arr = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 4., 3., 5., 6.]).unwrap();
+        let t = Tensor::new_rc(&arr);
         let res = pow(t, 2.0);
-        assert_eq!(res.data, array![[1., 4., 16.], [9., 25., 36.]]);
+        assert_eq!(
+            res.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 4., 16., 9., 25., 36.]).unwrap()
+        );
     }
 
     #[test]
     fn pow_backward_ok() {
-        let t = Tensor::new_rc(&array![[1., 2., 4.], [3., 5., 6.]]);
-        let res = pow(t, 2.0);
-        assert_eq!(res.data, array![[1., 4., 16.], [9., 25., 36.]]);
+        let arr = ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 2., 4., 3., 5., 6.]).unwrap();
+        let t = Tensor::new_rc(&arr);
+        let res = pow(t.clone(), 2.0);
+        assert_eq!(
+            res.borrow().data,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1., 4., 16., 9., 25., 36.]).unwrap()
+        );
 
-        res.backward();
-        assert_eq!(res.grad, array![[2., 4., 8.], [6., 10., 12.]]);
+        res.borrow_mut().backward();
+        assert_eq!(
+            t.borrow().grad,
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![2., 4., 8., 6., 10., 12.]).unwrap()
+        );
     }
 }
