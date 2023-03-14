@@ -28,10 +28,9 @@ impl Module for MLP {
             .concat()
     }
 
-    fn forward(&self, x: &Vec<Rc<RefCell<Tensor>>>) -> Vec<Rc<RefCell<Tensor>>> {
+    fn forward(&self, x: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
         self.layers
             .iter()
             .fold(x.clone(), |input, l| l.forward(&input))
-            .to_vec()
     }
 }

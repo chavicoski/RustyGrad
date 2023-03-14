@@ -51,6 +51,58 @@ fn mul_backward(t: &Tensor) {
     }
 }
 
+pub fn dot(t1: &Rc<RefCell<Tensor>>, t2: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+    // Compute the dot product of t1 and t2.
+    // Note: They must be converted to a 2D array view (Ix2) to be able to call .dot()
+    let out_data = t1
+        .borrow()
+        .data
+        .view()
+        .into_dimensionality::<Ix2>()
+        .unwrap() // TODO Handle the error
+        .dot(
+            &t2.borrow()
+                .data
+                .view()
+                .into_dimensionality::<Ix2>()
+                .unwrap(), // TODO Handle the error
+        )
+        .into_dyn(); // Convert back to dynamic array to create the output Tensor
+    let out_dim = out_data.raw_dim();
+    Rc::new(RefCell::new(Tensor {
+        data: out_data,
+        grad: Array::zeros(out_dim),
+        prev: vec![t1.clone(), t2.clone()],
+        backward_fn: Box::new(dot_backward),
+    }))
+}
+
+fn dot_backward(t: &Tensor) {
+    match &t.prev[..] {
+        [t1, t2] => {
+            let mut t1 = t1.borrow_mut();
+            let mut t2 = t2.borrow_mut();
+            t1.grad += &(t
+                .grad
+                .view()
+                .into_dimensionality::<Ix2>()
+                .unwrap()
+                .dot(&t2.data.view().into_dimensionality::<Ix2>().unwrap().t()));
+            t2.grad += &(t1
+                .data
+                .view()
+                .into_dimensionality::<Ix2>()
+                .unwrap()
+                .t()
+                .dot(&t.grad.view().into_dimensionality::<Ix2>().unwrap()));
+        }
+        _ => panic!(
+            "[Error] The number of children in Dot op must be 2, but is {})!",
+            t.prev.len()
+        ),
+    }
+}
+
 pub fn div(t1: &Rc<RefCell<Tensor>>, t2: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
     mul(t1, &pow(t2, -1.0))
 }

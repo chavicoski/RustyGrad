@@ -8,5 +8,5 @@ pub trait Module {
         }
     }
     fn parameters(&self) -> Vec<Rc<RefCell<Tensor>>>;
-    fn forward(&self, x: &Vec<Rc<RefCell<Tensor>>>) -> Vec<Rc<RefCell<Tensor>>>;
+    fn forward(&self, x: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>>;
 }
