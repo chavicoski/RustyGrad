@@ -5,7 +5,7 @@ use rusty_grad::nn::{components::Module, losses::squared_error, models::MLP};
 use std::{cell::RefCell, rc::Rc};
 
 const LEARNING_RATE: f32 = 0.001;
-const EPOCHS: usize = 100;
+const EPOCHS: usize = 500;
 
 fn main() {
     // Prepare the dataset
@@ -27,13 +27,10 @@ fn main() {
 
     for epoch in 0..EPOCHS {
         // Forward pass
-        let pred = dataset_x
-            .iter()
-            .map(|x| model.forward(&x))
-            .collect::<Vec<Rc<RefCell<Tensor>>>>();
+        let pred: Vec<Rc<RefCell<Tensor>>> = dataset_x.iter().map(|x| model.forward(&x)).collect();
 
         // Compute loss
-        let loss = dataset_y
+        let loss: Rc<RefCell<Tensor>> = dataset_y
             .iter()
             .zip(&pred)
             .map(|(y_true, y_pred)| squared_error(&y_true, &y_pred))
