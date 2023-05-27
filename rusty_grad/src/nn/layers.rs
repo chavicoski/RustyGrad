@@ -7,11 +7,10 @@ use std::{cell::RefCell, rc::Rc};
 pub struct Dense {
     w: Rc<RefCell<Tensor>>,
     b: Rc<RefCell<Tensor>>,
-    non_lin: bool,
 }
 
 impl Dense {
-    pub fn new(n_in: usize, n_out: usize, non_lin: bool) -> Self {
+    pub fn new(n_in: usize, n_out: usize) -> Self {
         let uniform = Uniform::new_inclusive(-1.0, 1.0);
         let mut rng = rand::thread_rng();
         Dense {
@@ -33,7 +32,6 @@ impl Dense {
                 )
                 .unwrap(),
             ),
-            non_lin,
         }
     }
 }
@@ -44,17 +42,5 @@ impl Module for Dense {
     }
     fn forward(&self, x: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
         dot(x, &self.w)
-        /*
-        println!("res = {:?}", res.borrow().data);
-        let x = x.borrow();
-        let w = self.w.borrow();
-        let x_2d = x.data.slice(s![.., ..]);
-        let w_2d = w.data.slice(s![.., ..]);
-        let out = x_2d.dot(&w_2d);
-        println!("x = {:?}", x.data);
-        println!("w = {:?}", w.data);
-        println!("out = {:?}", out);
-        todo!("Implement Dot op (with backward). Implement a generic version (maybe with .broadcast())")
-        */
     }
 }

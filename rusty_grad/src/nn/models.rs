@@ -11,8 +11,8 @@ impl MLP {
     pub fn new(n_in: usize, n_units: Vec<usize>) -> Self {
         let mut layers: Vec<Dense> = vec![];
         let mut aux_in = n_in;
-        for (i, aux_out) in n_units.iter().enumerate() {
-            layers.push(Dense::new(aux_in, *aux_out, i < n_units.len() - 1));
+        for aux_out in n_units.iter() {
+            layers.push(Dense::new(aux_in, *aux_out));
             aux_in = *aux_out;
         }
         MLP { layers }
