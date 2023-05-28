@@ -27,13 +27,13 @@ fn main() {
 
     for epoch in 0..EPOCHS {
         // Forward pass
-        let pred: Vec<Rc<RefCell<Tensor>>> = dataset_x.iter().map(|x| model.forward(&x)).collect();
+        let pred: Vec<Rc<RefCell<Tensor>>> = dataset_x.iter().map(|x| model.forward(x)).collect();
 
         // Compute loss
         let loss: Rc<RefCell<Tensor>> = dataset_y
             .iter()
             .zip(&pred)
-            .map(|(y_true, y_pred)| squared_error(&y_true, &y_pred))
+            .map(|(y_true, y_pred)| squared_error(y_true, y_pred))
             .reduce(|v1, v2| add(&v1, &v2))
             .unwrap();
 

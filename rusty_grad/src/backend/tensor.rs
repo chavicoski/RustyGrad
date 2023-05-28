@@ -53,7 +53,7 @@ impl Tensor {
         }
 
         // Set the initial gradients to 1.0 to start the backpropagation
-        self.grad.fill(1.0.into());
+        self.grad.fill(1.0);
         // Apply the backpropagation in topological order (from parents to childs)
         (self.backward_fn)(self);
         for v in topo.iter().rev() {
