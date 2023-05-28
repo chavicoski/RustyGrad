@@ -8,9 +8,11 @@ use std::rc::Rc;
 pub struct Tensor {
     pub data: ArrayD<f32>,
     pub grad: ArrayD<f32>,
-    pub prev: Vec<Rc<RefCell<Tensor>>>,
+    pub prev: Vec<RTensor>,
     pub backward_fn: Box<dyn Fn(&Tensor)>,
 }
+
+pub type RTensor = Rc<RefCell<Tensor>>;
 
 impl Tensor {
     pub fn new(data: &ArrayD<f32>) -> Self {
@@ -22,14 +24,18 @@ impl Tensor {
         }
     }
 
-    pub fn new_rc(data: &ArrayD<f32>) -> Rc<RefCell<Tensor>> {
+    pub fn new_ref(data: &ArrayD<f32>) -> RTensor {
         Rc::new(RefCell::new(Self::new(data)))
     }
 
+    pub fn to_ref(self) -> RTensor {
+        Rc::new(RefCell::new(self))
+    }
+
     fn topological_sort(
-        value: Rc<RefCell<Tensor>>,
-        topo: &mut Vec<Rc<RefCell<Tensor>>>,
-        visited: &mut HashSet<ByAddress<Rc<RefCell<Tensor>>>>,
+        value: RTensor,
+        topo: &mut Vec<RTensor>,
+        visited: &mut HashSet<ByAddress<RTensor>>,
     ) {
         if !visited.contains(&ByAddress(value.clone())) {
             visited.insert(ByAddress(value.clone()));
@@ -42,9 +48,9 @@ impl Tensor {
 
     pub fn backward(&mut self) {
         // Tracks the already visited values
-        let mut visited: HashSet<ByAddress<Rc<RefCell<Tensor>>>> = HashSet::new();
+        let mut visited: HashSet<ByAddress<RTensor>> = HashSet::new();
         // Stores the values in topological order
-        let mut topo: Vec<Rc<RefCell<Tensor>>> = vec![];
+        let mut topo: Vec<RTensor> = vec![];
 
         // Compute the topological order from the childs of `self`. We already know
         // that `self` must be the fist value in topological order

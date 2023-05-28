@@ -1,5 +1,4 @@
-use crate::backend::tensor::Tensor;
-use std::{cell::RefCell, rc::Rc};
+use crate::backend::tensor::RTensor;
 
 pub trait Module {
     fn zero_grad(&self) {
@@ -7,6 +6,6 @@ pub trait Module {
             param.borrow_mut().grad.fill(0.0);
         }
     }
-    fn parameters(&self) -> Vec<Rc<RefCell<Tensor>>>;
-    fn forward(&self, x: &Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>>;
+    fn parameters(&self) -> Vec<RTensor>;
+    fn forward(&self, x: &RTensor) -> RTensor;
 }

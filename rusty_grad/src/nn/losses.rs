@@ -1,13 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::backend::{
     ops::{diff, pow},
-    tensor::Tensor,
+    tensor::RTensor,
 };
 
-pub fn squared_error(
-    y_true: &Rc<RefCell<Tensor>>,
-    y_pred: &Rc<RefCell<Tensor>>,
-) -> Rc<RefCell<Tensor>> {
+pub fn squared_error(y_true: &RTensor, y_pred: &RTensor) -> RTensor {
     pow(&diff(y_true, y_pred), 2.0)
 }

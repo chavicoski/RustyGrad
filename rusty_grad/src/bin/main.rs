@@ -1,8 +1,7 @@
 use ndarray::{ArrayD, IxDyn};
 use rusty_grad::backend::ops::add;
-use rusty_grad::backend::tensor::Tensor;
+use rusty_grad::backend::tensor::{RTensor, Tensor};
 use rusty_grad::nn::{components::Module, losses::squared_error, models::MLP};
-use std::{cell::RefCell, rc::Rc};
 
 const LEARNING_RATE: f32 = 0.001;
 const EPOCHS: usize = 500;
@@ -10,16 +9,16 @@ const EPOCHS: usize = 500;
 fn main() {
     // Prepare the dataset
     let dataset_x = vec![
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![2., 3., -1.]).unwrap()),
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![3., -1., 0.5]).unwrap()),
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![0.5, 1., 1.]).unwrap()),
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![1., 1., -1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![2., 3., -1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![3., -1., 0.5]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![0.5, 1., 1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![1., 1., -1.]).unwrap()),
     ];
     let dataset_y = vec![
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![1.]).unwrap()),
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
-        Tensor::new_rc(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
+        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
     ];
 
     // Create the model
@@ -27,10 +26,10 @@ fn main() {
 
     for epoch in 0..EPOCHS {
         // Forward pass
-        let pred: Vec<Rc<RefCell<Tensor>>> = dataset_x.iter().map(|x| model.forward(x)).collect();
+        let pred: Vec<RTensor> = dataset_x.iter().map(|x| model.forward(x)).collect();
 
         // Compute loss
-        let loss: Rc<RefCell<Tensor>> = dataset_y
+        let loss: RTensor = dataset_y
             .iter()
             .zip(&pred)
             .map(|(y_true, y_pred)| squared_error(y_true, y_pred))

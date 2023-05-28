@@ -1,15 +1,15 @@
-use crate::backend::tensor::Tensor;
+use crate::backend::tensor::{RTensor, Tensor};
 use ndarray::Array;
-use std::{cell::RefCell, rc::Rc};
 
-pub fn relu(t: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+pub fn relu(t: RTensor) -> RTensor {
     let t_data = &t.borrow().data;
-    Rc::new(RefCell::new(Tensor {
+    Tensor {
         data: t_data.mapv(|x| if x > 0. { x } else { 0. }),
         grad: Array::zeros(t_data.raw_dim()),
         prev: vec![t.clone()],
         backward_fn: Box::new(relu_backward),
-    }))
+    }
+    .to_ref()
 }
 
 fn relu_backward(t: &Tensor) {
@@ -25,15 +25,16 @@ fn relu_backward(t: &Tensor) {
     }
 }
 
-pub fn tanh(t: Rc<RefCell<Tensor>>) -> Rc<RefCell<Tensor>> {
+pub fn tanh(t: RTensor) -> RTensor {
     let aux_exp = t.borrow().data.mapv(|x| f32::exp(2.0 * x));
     let res = (&aux_exp - 1.) / (&aux_exp + 1.);
-    Rc::new(RefCell::new(Tensor {
+    Tensor {
         data: res,
         grad: Array::zeros(t.borrow().data.raw_dim()),
         prev: vec![t.clone()],
         backward_fn: Box::new(tanh_backward),
-    }))
+    }
+    .to_ref()
 }
 
 fn tanh_backward(t: &Tensor) {
@@ -57,7 +58,7 @@ mod tests {
     #[test]
     fn relu_ok() {
         let arr = ArrayD::from_shape_vec(IxDyn(&[2, 2]), vec![2., 1.2, -0.3, -1.]).unwrap();
-        let t = Tensor::new_rc(&arr);
+        let t = Tensor::new_ref(&arr);
         let res = relu(t);
         assert_eq!(
             res.borrow().data,
@@ -68,7 +69,7 @@ mod tests {
     #[test]
     fn relu_backward_ok() {
         let arr = ArrayD::from_shape_vec(IxDyn(&[2, 2]), vec![2., 1.2, -0.3, -1.]).unwrap();
-        let t = Tensor::new_rc(&arr);
+        let t = Tensor::new_ref(&arr);
         let res = relu(t.clone());
         assert_eq!(
             res.borrow().data,
@@ -84,7 +85,7 @@ mod tests {
     #[test]
     fn tanh_ok() {
         let arr = ArrayD::from_shape_vec(IxDyn(&[2, 2]), vec![0., 0.7, 0., 0.7]).unwrap();
-        let t = Tensor::new_rc(&arr);
+        let t = Tensor::new_ref(&arr);
         let res = tanh(t);
         assert_eq!(
             res.borrow().data,
@@ -95,7 +96,7 @@ mod tests {
     #[test]
     fn tanh_backward_ok() {
         let arr = ArrayD::from_shape_vec(IxDyn(&[2, 2]), vec![0., 0.8814, 0., 0.8814]).unwrap();
-        let t = Tensor::new_rc(&arr);
+        let t = Tensor::new_ref(&arr);
         let res = tanh(t.clone());
         assert_eq!(
             res.borrow().data,
