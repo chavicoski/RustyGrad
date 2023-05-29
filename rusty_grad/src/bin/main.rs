@@ -2,6 +2,7 @@ use ndarray::{ArrayD, IxDyn};
 use rusty_grad::backend::ops::add;
 use rusty_grad::backend::tensor::{RTensor, Tensor};
 use rusty_grad::nn::{components::Module, losses::squared_error, models::MLP};
+use rusty_grad::rtensor;
 
 const LEARNING_RATE: f32 = 0.001;
 const EPOCHS: usize = 500;
@@ -9,16 +10,16 @@ const EPOCHS: usize = 500;
 fn main() {
     // Prepare the dataset
     let dataset_x = vec![
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![2., 3., -1.]).unwrap()),
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![3., -1., 0.5]).unwrap()),
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![0.5, 1., 1.]).unwrap()),
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 3]), vec![1., 1., -1.]).unwrap()),
+        rtensor![&[1, 3], &[2., 3., -1.]],
+        rtensor![&[1, 3], &[3., -1., 0.5]],
+        rtensor![&[1, 3], &[0.5, 1., 1.]],
+        rtensor![&[1, 3], &[1., 1., -1.]],
     ];
     let dataset_y = vec![
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![1.]).unwrap()),
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
-        Tensor::new_ref(&ArrayD::from_shape_vec(IxDyn(&[1, 1]), vec![-1.]).unwrap()),
+        rtensor![&[1, 1], &[1.]],
+        rtensor![&[1, 1], &[-1.]],
+        rtensor![&[1, 1], &[-1.]],
+        rtensor![&[1, 1], &[-1.]],
     ];
 
     // Create the model

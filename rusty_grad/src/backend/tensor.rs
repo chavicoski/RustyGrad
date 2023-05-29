@@ -68,6 +68,30 @@ impl Tensor {
     }
 }
 
+#[macro_export]
+macro_rules! tensor {
+	(&[$($s:expr),*], &[$($d:expr),*]) => {
+        {
+            let shape = IxDyn(&[$($s,)*]);
+            let data = vec![$($d,)*];
+            let data_array = &ArrayD::from_shape_vec(shape, data).unwrap();
+            Tensor::new(data_array)
+        }
+	};
+}
+
+#[macro_export]
+macro_rules! rtensor {
+	(&[$($s:expr),*], &[$($d:expr),*]) => {
+        {
+            let shape = IxDyn(&[$($s,)*]);
+            let data = vec![$($d,)*];
+            let data_array = &ArrayD::from_shape_vec(shape, data).unwrap();
+            Tensor::new_ref(data_array)
+        }
+	};
+}
+
 impl fmt::Display for Tensor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -83,14 +107,51 @@ impl fmt::Display for Tensor {
 mod tests {
     use super::*;
 
+    fn zero_array(shape: &[usize]) -> ArrayD<f32> {
+        ArrayD::zeros(IxDyn(shape))
+    }
+
     #[test]
     fn new_ok() {
-        let arr =
-            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap();
-        let arr_zeros = ArrayD::zeros(IxDyn(&[2, 3]));
+        let shape = &[2, 3];
+        let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let arr = ArrayD::from_shape_vec(IxDyn(shape), data).unwrap();
         let t = Tensor::new(&arr);
 
         assert_eq!(t.data, arr);
-        assert_eq!(t.grad, arr_zeros);
+        assert_eq!(t.grad, zero_array(shape));
+    }
+
+    #[test]
+    fn new_ref_ok() {
+        let shape = &[2, 3];
+        let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let arr = ArrayD::from_shape_vec(IxDyn(shape), data).unwrap();
+        let t = Tensor::new_ref(&arr);
+
+        assert_eq!(t.borrow().data, arr);
+        assert_eq!(t.borrow().grad, zero_array(shape));
+    }
+
+    #[test]
+    fn macro_tensor_ok() {
+        let shape = &[2, 3];
+        let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let arr = ArrayD::from_shape_vec(IxDyn(shape), data).unwrap();
+        let t = tensor![&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]];
+
+        assert_eq!(t.data, arr);
+        assert_eq!(t.grad, zero_array(shape));
+    }
+
+    #[test]
+    fn macro_rtensor_ok() {
+        let shape = &[2, 3];
+        let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let arr = ArrayD::from_shape_vec(IxDyn(shape), data).unwrap();
+        let t = rtensor![&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]];
+
+        assert_eq!(t.borrow().data, arr);
+        assert_eq!(t.borrow().grad, zero_array(shape));
     }
 }
